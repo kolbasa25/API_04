@@ -4,7 +4,7 @@ import os
 import requests
 from dotenv import load_dotenv
 
-from image_tools import create_folder, download_image, get_file_extension
+from image_tools import download_image, get_file_extension
 
 
 NASA_APOD_URL = "https://api.nasa.gov/planetary/apod"
@@ -14,7 +14,7 @@ def fetch_nasa_apod_images(api_key, count):
     if not 1 <= count <= 100:
         raise ValueError("count должен быть от 1 до 100")
 
-    create_folder("images")
+    os.makedirs("images", exist_ok=True)
 
     params = {
         "api_key": api_key,
@@ -25,11 +25,12 @@ def fetch_nasa_apod_images(api_key, count):
     response.raise_for_status()
     items = response.json()
 
-    image_number = 1
-    for item in items:
-        if item.get("media_type") != "image":
-            continue
+    image_items = [
+        item for item in items
+        if item.get("media_type") == "image"
+    ]
 
+    for image_number, item in enumerate(image_items, start=1):
         image_url = (item.get("hdurl") or item.get("url") or "").strip()
         if not image_url:
             continue
@@ -40,7 +41,6 @@ def fetch_nasa_apod_images(api_key, count):
         try:
             download_image(image_url, file_path)
             print(f"Сохранено: {file_path}")
-            image_number += 1
         except requests.exceptions.RequestException:
             print(f"Не удалось скачать {image_url}")
 
@@ -48,8 +48,17 @@ def fetch_nasa_apod_images(api_key, count):
 def main():
     load_dotenv()
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--count", type=int, default=30)
+    parser = argparse.ArgumentParser(
+        description="Скачивает случайные изображения NASA APOD"
+    )
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=30,
+        choices=range(1, 101),
+        metavar="1-100",
+        help="Количество изображений (от 1 до 100, по умолчанию 30)",
+    )
     args = parser.parse_args()
 
     api_key = os.environ.get("NASA_API_KEY")

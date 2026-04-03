@@ -1,12 +1,7 @@
-import os
 from urllib.parse import urlparse
 from os.path import splitext
 
 import requests
-
-
-def create_folder(folder_name):
-    os.makedirs(folder_name, exist_ok=True)
 
 
 def get_file_extension(url):
@@ -21,3 +16,8 @@ def download_image(url, file_path, proxies=None):
 
     with open(file_path, "wb") as file:
         file.write(response.content)
+
+
+def send_telegram_image(bot, chat_id, image_path):
+    with open(image_path, "rb") as photo:
+        bot.send_photo(chat_id=chat_id, photo=photo)

@@ -3,14 +3,14 @@ import os
 
 import requests
 
-from image_tools import create_folder, download_image
+from image_tools import download_image
 
 
 SPACEX_URL = "https://api.spacexdata.com/v5/launches"
 
 
 def fetch_spacex_images(launch_id=None, proxy=None):
-    create_folder("images")
+    os.makedirs("images", exist_ok=True)
 
     proxies = None
     if proxy:
@@ -43,9 +43,19 @@ def fetch_spacex_images(launch_id=None, proxy=None):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("launch_id", nargs="?", default=None)
-    parser.add_argument("--proxy", default=None)
+    parser = argparse.ArgumentParser(
+        description="Скачивает фотографии запусков SpaceX"
+    )
+    parser.add_argument(
+        "launch_id",
+        nargs="?",
+        help="ID запуска SpaceX (если не указан, берётся последний запуск с изображениями)",
+    )
+    parser.add_argument(
+        "--proxy",
+        metavar="URL",
+        help="Прокси (например: socks5://127.0.0.1:9050)",
+    )
     args = parser.parse_args()
 
     fetch_spacex_images(args.launch_id, args.proxy)

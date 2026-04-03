@@ -4,12 +4,12 @@ from datetime import datetime
 
 import requests
 
-from image_tools import create_folder, download_image
+from image_tools import download_image
 
 
 EPIC_ALL_DATES_URL = "https://epic.gsfc.nasa.gov/api/natural/all"
-EPIC_DATE_URL = "https://epic.gsfc.nasa.gov/api/natural/date/{date}"
-EPIC_IMAGE_URL = "https://epic.gsfc.nasa.gov/archive/natural/{year}/{month}/{day}/png/{image}.png"
+EPIC_DATE_URL_TEMPLATE = "https://epic.gsfc.nasa.gov/api/natural/date/{date}"
+EPIC_IMAGE_URL_TEMPLATE = "https://epic.gsfc.nasa.gov/archive/natural/{year}/{month}/{day}/png/{image}.png"
 
 
 def get_latest_date():
@@ -25,7 +25,7 @@ def get_latest_date():
 
 def get_epic_image_url(item):
     image_date = datetime.strptime(item["date"], "%Y-%m-%d %H:%M:%S")
-    return EPIC_IMAGE_URL.format(
+    return EPIC_IMAGE_URL_TEMPLATE.format(
         year=image_date.strftime("%Y"),
         month=image_date.strftime("%m"),
         day=image_date.strftime("%d"),
@@ -37,14 +37,14 @@ def fetch_epic_images(count):
     if not 1 <= count <= 10:
         raise ValueError("count должен быть от 1 до 10")
 
-    create_folder("images")
+    os.makedirs("images", exist_ok=True)
 
     date = get_latest_date()
     if not date:
         print("NASA EPIC не вернул даты")
         return
 
-    response = requests.get(EPIC_DATE_URL.format(date=date), timeout=20)
+    response = requests.get(EPIC_DATE_URL_TEMPLATE.format(date=date), timeout=20)
     response.raise_for_status()
     items = response.json()
 
@@ -60,8 +60,17 @@ def fetch_epic_images(count):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--count", type=int, default=5)
+    parser = argparse.ArgumentParser(
+        description="Скачивает последние EPIC-изображения Земли с сайта NASA"
+    )
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=5,
+        choices=range(1, 11),
+        metavar="1-10",
+        help="Количество изображений (от 1 до 10, по умолчанию 5)",
+    )
     args = parser.parse_args()
 
     fetch_epic_images(args.count)

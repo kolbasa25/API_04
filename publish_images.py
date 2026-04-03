@@ -6,6 +6,8 @@ import argparse
 from dotenv import load_dotenv
 from telegram import Bot
 
+from image_tools import send_telegram_image
+
 
 def get_image_files(folder_name):
     image_files = []
@@ -19,16 +21,7 @@ def get_image_files(folder_name):
     return image_files
 
 
-def publish_image(bot, chat_id, image_path):
-    with open(image_path, "rb") as photo:
-        bot.send_photo(chat_id=chat_id, photo=photo)
-
-    print(f"Опубликовано: {image_path}")
-
-
-def publish_images(folder_name, delay_hours, bot, chat_id):
-    image_files = get_image_files(folder_name)
-
+def publish_images(image_files, delay_hours, bot, chat_id):
     if not image_files:
         print("В папке нет файлов для публикации")
         return
@@ -39,16 +32,29 @@ def publish_images(folder_name, delay_hours, bot, chat_id):
         random.shuffle(image_files)
 
         for image_path in image_files:
-            publish_image(bot, chat_id, image_path)
+            send_telegram_image(bot, chat_id, image_path)
+            print(f"Опубликовано: {image_path}")
             time.sleep(delay_seconds)
 
 
 def main():
     load_dotenv()
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("folder_name", nargs="?", default="images")
-    parser.add_argument("--hours", type=float, default=None)
+    parser = argparse.ArgumentParser(
+        description="Публикует изображения в Telegram-канал с заданным интервалом"
+    )
+    parser.add_argument(
+        "folder_name",
+        nargs="?",
+        default="images",
+        help="Папка с изображениями (по умолчанию: images)",
+    )
+    parser.add_argument(
+        "--hours",
+        type=float,
+        metavar="HOURS",
+        help="Интервал публикации в часах (по умолчанию берётся из .env)",
+    )
     args = parser.parse_args()
 
     telegram_token = os.environ["TELEGRAM_TOKEN"]
@@ -59,7 +65,8 @@ def main():
         delay_hours = float(os.environ.get("PUBLISH_DELAY_HOURS", 4))
 
     bot = Bot(token=telegram_token)
-    publish_images(args.folder_name, delay_hours, bot, telegram_chat_id)
+    image_files = get_image_files(args.folder_name)
+    publish_images(image_files, delay_hours, bot, telegram_chat_id)
 
 
 if __name__ == "__main__":
